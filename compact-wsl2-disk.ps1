@@ -24,14 +24,18 @@ write-output " - Shutting down WSL2"
 wsl -e sudo fstrim /
 wsl --shutdown
 
+$nbDisksCompacted = 0
 foreach ($file in $files) {
-	$disk = $file.FullName
-	write-output "-----"
-	write-output "Disk to compact: $($disk)"
-	write-output "Length: $($file.Length/1MB) MB"
-	write-output "Compacting disk (starting diskpart)"
+    $disk = $file.FullName
+    write-output "-----"
+    write-output "Disk to compact: $($disk)"
+    write-output "Length: $($file.Length/1MB) MB"
 
-	@"
+    $confirm = Read-Host "Are you sure wou want compact $($disk)? [y/N]"
+    if ($confirm -eq 'y') {
+    	write-output "Compacting disk (starting diskpart)"
+
+        @"
 select vdisk file="$disk"
 attach vdisk readonly
 compact vdisk
@@ -39,13 +43,16 @@ detach vdisk
 exit
 "@ | diskpart
 
-	write-output ""
-	write-output "Success. Compacted $disk."
-	write-output "New length: $((Get-Item $disk).Length/1MB) MB"
+    	write-output ""
+    	write-output "Success. Compacted $disk."
+    	write-output "New length: $((Get-Item $disk).Length/1MB) MB"
+        $nbDisksCompacted++
+    }
+
 
 }
 write-output "======="
-write-output "Compacting of $($files.count) file(s) complete"
+write-output "Compacting of $($nbDisksCompacted) file(s) complete"
 
 Pop-Location
 Pop-Location
